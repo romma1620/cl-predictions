@@ -55,6 +55,19 @@ function getMatchLabel(match, picks) {
   return `${teams[0]} vs ${teams[1]}`;
 }
 
+async function parseJsonSafely(response) {
+  const text = await response.text();
+  if (!text) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { error: 'Server returned an invalid response. Please try again.' };
+  }
+}
+
 export default function HomePage() {
   const [stage, setStage] = useState('login');
   const [name, setName] = useState('');
@@ -77,7 +90,13 @@ export default function HomePage() {
 
   async function loadDashboard() {
     const response = await fetch('/api/predictions', { cache: 'no-store' });
-    const data = await response.json();
+    const data = await parseJsonSafely(response);
+
+    if (!response.ok) {
+      setMessage(data.error || 'Could not load predictions dashboard.');
+      return;
+    }
+
     const entries = (data.predictions || []).map((entry) => ({
       ...entry,
       picks: normalizePicks(entry.picks)
@@ -113,7 +132,7 @@ export default function HomePage() {
       body: JSON.stringify({ name, password })
     });
 
-    const data = await response.json();
+    const data = await parseJsonSafely(response);
     setLoading(false);
 
     if (!response.ok) {
@@ -141,7 +160,7 @@ export default function HomePage() {
       body: JSON.stringify({ name, avatar })
     });
 
-    const data = await response.json();
+    const data = await parseJsonSafely(response);
     setLoading(false);
 
     if (!response.ok) {
@@ -186,7 +205,7 @@ export default function HomePage() {
       body: JSON.stringify({ name, picks })
     });
 
-    const data = await response.json();
+    const data = await parseJsonSafely(response);
     setLoading(false);
 
     if (!response.ok) {
