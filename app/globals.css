@@ -5,12 +5,12 @@
 body {
   margin: 0;
   font-family: Arial, Helvetica, sans-serif;
-  background: #04133a;
+  background: radial-gradient(circle at top, #0b2f97 0%, #03103a 45%, #020a25 100%);
   color: #eef6ff;
 }
 
 .page {
-  max-width: 1100px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 24px;
   display: grid;
@@ -18,7 +18,7 @@ body {
 }
 
 .card {
-  background: #0a1f56;
+  background: rgba(10, 31, 86, 0.9);
   border: 1px solid #2544a6;
   border-radius: 12px;
   padding: 18px;
@@ -69,6 +69,22 @@ button:disabled {
   background: #143387;
 }
 
+.bracketRounds {
+  display: grid;
+  gap: 16px;
+}
+
+.round {
+  border: 1px solid #2a4ba8;
+  border-radius: 10px;
+  padding: 12px;
+  background: rgba(11, 36, 96, 0.72);
+}
+
+.round h3 {
+  margin-top: 0;
+}
+
 .matches {
   display: grid;
   gap: 10px;
@@ -79,6 +95,10 @@ button:disabled {
   border-radius: 10px;
   padding: 10px;
   background: #102a73;
+}
+
+.matchCard p {
+  margin-top: 0;
 }
 
 .choiceRow {
@@ -100,6 +120,14 @@ button:disabled {
   border-top: 1px solid #2748a8;
   margin-top: 10px;
   padding-top: 10px;
+}
+
+.dashboardRound h4 {
+  margin-bottom: 6px;
+}
+
+.championPick {
+  color: #7af3ff;
 }
 
 .message {

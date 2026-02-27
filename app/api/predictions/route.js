@@ -1,4 +1,26 @@
+import { knockoutMatchIds } from '@/lib/matches';
 import { readStore, writeStore } from '@/lib/storage';
+
+function normalizePicks(input) {
+  if (Array.isArray(input)) {
+    return input.reduce((acc, item) => {
+      if (item?.matchId) {
+        acc[item.matchId] = item.winner || '';
+      }
+      return acc;
+    }, {});
+  }
+
+  if (input && typeof input === 'object') {
+    return input;
+  }
+
+  return {};
+}
+
+function hasCompleteBracket(picks) {
+  return knockoutMatchIds.every((matchId) => typeof picks[matchId] === 'string' && picks[matchId].trim());
+}
 
 export async function GET() {
   const store = readStore();
@@ -6,6 +28,7 @@ export async function GET() {
 
   const predictions = store.predictions.map((entry) => ({
     ...entry,
+    picks: normalizePicks(entry.picks),
     avatar: usersByName[entry.name]?.avatar || '🙂'
   }));
 
@@ -15,10 +38,13 @@ export async function GET() {
 export async function POST(request) {
   const body = await request.json();
   const name = body.name?.trim();
-  const picks = Array.isArray(body.picks) ? body.picks : [];
+  const picks = normalizePicks(body.picks);
 
-  if (!name || picks.length !== 8) {
-    return Response.json({ error: 'Name and all 8 predictions are required.' }, { status: 400 });
+  if (!name || !hasCompleteBracket(picks)) {
+    return Response.json(
+      { error: 'Name and complete predictions from Round of 16 through the final winner are required.' },
+      { status: 400 }
+    );
   }
 
   const store = readStore();
