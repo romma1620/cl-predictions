@@ -1,29 +1,88 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { avatars, matches } from '@/lib/matches';
+import { avatars, knockoutMatchIds, knockoutRounds } from '@/lib/matches';
 
-const emptyPicks = matches.map((match) => ({ matchId: match.id, winner: '' }));
+const emptyPicks = Object.fromEntries(knockoutMatchIds.map((matchId) => [matchId, '']));
+
+const allMatches = knockoutRounds.flatMap((round) => round.matches);
+const matchesById = Object.fromEntries(allMatches.map((match) => [match.id, match]));
+
+const dependentsByMatchId = allMatches.reduce((map, match) => {
+  if (!match.from) {
+    return map;
+  }
+
+  match.from.forEach((sourceId) => {
+    map[sourceId] = map[sourceId] || [];
+    map[sourceId].push(match.id);
+  });
+
+  return map;
+}, {});
+
+function normalizePicks(input) {
+  if (Array.isArray(input)) {
+    return input.reduce((acc, item) => {
+      if (item?.matchId) {
+        acc[item.matchId] = item.winner || '';
+      }
+      return acc;
+    }, { ...emptyPicks });
+  }
+
+  if (input && typeof input === 'object') {
+    return { ...emptyPicks, ...input };
+  }
+
+  return { ...emptyPicks };
+}
+
+function getMatchOptions(match, picks) {
+  if (match.home && match.away) {
+    return [match.home, match.away];
+  }
+
+  return (match.from || []).map((matchId) => picks[matchId]).filter(Boolean);
+}
+
+function getMatchLabel(match, picks) {
+  if (match.home && match.away) {
+    return `${match.home} vs ${match.away}`;
+  }
+
+  const teams = (match.from || []).map((sourceId) => picks[sourceId] || `Winner of ${sourceId.toUpperCase()}`);
+  return `${teams[0]} vs ${teams[1]}`;
+}
 
 export default function HomePage() {
   const [stage, setStage] = useState('login');
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [avatar, setAvatar] = useState('');
-  const [picks, setPicks] = useState(emptyPicks);
+  const [picks, setPicks] = useState({ ...emptyPicks });
   const [dashboard, setDashboard] = useState([]);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
   const canSubmitPredictions = useMemo(
-    () => picks.every((pick) => pick.winner),
+    () =>
+      knockoutMatchIds.every((matchId) => {
+        const match = matchesById[matchId];
+        const options = getMatchOptions(match, picks);
+        return options.length === 2 && options.includes(picks[matchId]);
+      }),
     [picks]
   );
 
   async function loadDashboard() {
     const response = await fetch('/api/predictions', { cache: 'no-store' });
     const data = await response.json();
-    setDashboard(data.predictions || []);
+    const entries = (data.predictions || []).map((entry) => ({
+      ...entry,
+      picks: normalizePicks(entry.picks)
+    }));
+    setDashboard(entries);
   }
 
   useEffect(() => {
@@ -92,26 +151,29 @@ export default function HomePage() {
 
     window.localStorage.setItem('cl-user-avatar', avatar);
     setStage('predict');
-    setMessage('Avatar saved. Now make your predictions.');
+    setMessage('Avatar saved. Complete your full knockout bracket.');
     await loadDashboard();
   }
 
+  function clearDependentPicks(nextPicks, sourceId) {
+    const dependents = dependentsByMatchId[sourceId] || [];
+    dependents.forEach((dependentId) => {
+      nextPicks[dependentId] = '';
+      clearDependentPicks(nextPicks, dependentId);
+    });
+  }
+
   function updatePick(matchId, winner) {
-    setPicks((current) =>
-      current.map((pick) =>
-        pick.matchId === matchId
-          ? {
-              ...pick,
-              winner
-            }
-          : pick
-      )
-    );
+    setPicks((current) => {
+      const next = { ...current, [matchId]: winner };
+      clearDependentPicks(next, matchId);
+      return next;
+    });
   }
 
   async function handleSavePredictions() {
     if (!canSubmitPredictions) {
-      setMessage('Please choose winners for all matches.');
+      setMessage('Please complete every round from R16 to Final Winner.');
       return;
     }
 
@@ -132,15 +194,15 @@ export default function HomePage() {
       return;
     }
 
-    setMessage('Predictions saved! Everyone can see them in the dashboard.');
+    setMessage('Bracket saved! Everyone can see your full road to the final winner.');
     await loadDashboard();
   }
 
   return (
     <main className="page">
       <section className="card">
-        <h1>Champions League 2026 Predictions</h1>
-        <p className="subtitle">Simple app: login → avatar → pick winners.</p>
+        <h1>Road to Budapest 26 — Prediction Bracket</h1>
+        <p className="subtitle">Login → avatar → predict from Round of 16 to the final winner.</p>
 
         {stage === 'login' && (
           <form className="form" onSubmit={handleLogin}>
@@ -189,36 +251,46 @@ export default function HomePage() {
             <p>
               Signed in as <strong>{avatar || '🙂'} {name}</strong>
             </p>
-            <div className="matches">
-              {matches.map((match) => {
-                const selectedWinner = picks.find((pick) => pick.matchId === match.id)?.winner || '';
-                return (
-                  <div className="matchCard" key={match.id}>
-                    <p>
-                      {match.home} vs. {match.away}
-                    </p>
-                    <div className="choiceRow">
-                      <button
-                        className={selectedWinner === match.home ? 'pick active' : 'pick'}
-                        onClick={() => updatePick(match.id, match.home)}
-                        type="button"
-                      >
-                        {match.home}
-                      </button>
-                      <button
-                        className={selectedWinner === match.away ? 'pick active' : 'pick'}
-                        onClick={() => updatePick(match.id, match.away)}
-                        type="button"
-                      >
-                        {match.away}
-                      </button>
-                    </div>
+
+            <div className="bracketRounds">
+              {knockoutRounds.map((round) => (
+                <div className="round" key={round.key}>
+                  <h3>{round.title}</h3>
+                  <div className="matches">
+                    {round.matches.map((match) => {
+                      const options = getMatchOptions(match, picks);
+                      const selectedWinner = options.includes(picks[match.id]) ? picks[match.id] : '';
+
+                      return (
+                        <div className="matchCard" key={match.id}>
+                          <p>{getMatchLabel(match, picks)}</p>
+                          <div className="choiceRow">
+                            {[0, 1].map((index) => {
+                              const team = options[index] || 'Waiting...';
+                              const disabled = !options[index];
+                              return (
+                                <button
+                                  key={`${match.id}-${index}`}
+                                  className={selectedWinner === team ? 'pick active' : 'pick'}
+                                  disabled={disabled}
+                                  onClick={() => updatePick(match.id, team)}
+                                  type="button"
+                                >
+                                  {team}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
+
             <button disabled={loading || !canSubmitPredictions} onClick={handleSavePredictions} type="button">
-              {loading ? 'Saving...' : 'Save predictions'}
+              {loading ? 'Saving...' : 'Save full bracket'}
             </button>
           </div>
         )}
@@ -228,7 +300,7 @@ export default function HomePage() {
 
       <section className="card">
         <h2>Predictions Dashboard</h2>
-        <p className="subtitle">Everyone can see submitted picks.</p>
+        <p className="subtitle">Everyone can see each full bracket and champion pick.</p>
 
         {dashboard.length === 0 && <p>No predictions yet.</p>}
 
@@ -237,16 +309,19 @@ export default function HomePage() {
             <h3>
               {entry.avatar} {entry.name}
             </h3>
-            <ul>
-              {entry.picks.map((pick) => {
-                const match = matches.find((item) => item.id === pick.matchId);
-                return (
-                  <li key={`${entry.name}-${pick.matchId}`}>
-                    {match?.home} vs. {match?.away} → <strong>{pick.winner}</strong>
-                  </li>
-                );
-              })}
-            </ul>
+            <p className="championPick">🏆 Final winner: <strong>{entry.picks['final-1'] || 'Not set'}</strong></p>
+            {knockoutRounds.map((round) => (
+              <div className="dashboardRound" key={`${entry.name}-${round.key}`}>
+                <h4>{round.title}</h4>
+                <ul>
+                  {round.matches.map((match) => (
+                    <li key={`${entry.name}-${match.id}`}>
+                      {getMatchLabel(match, entry.picks)} → <strong>{entry.picks[match.id] || 'Not picked'}</strong>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </article>
         ))}
       </section>
