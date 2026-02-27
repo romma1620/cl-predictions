@@ -1,0 +1,108 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  background: #04133a;
+  color: #eef6ff;
+}
+
+.page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px;
+  display: grid;
+  gap: 20px;
+}
+
+.card {
+  background: #0a1f56;
+  border: 1px solid #2544a6;
+  border-radius: 12px;
+  padding: 18px;
+}
+
+.subtitle {
+  color: #9eb5f2;
+}
+
+.form,
+.section {
+  display: grid;
+  gap: 12px;
+}
+
+label {
+  display: grid;
+  gap: 6px;
+}
+
+input,
+button {
+  border-radius: 8px;
+  border: 1px solid #2e56d1;
+  padding: 10px 12px;
+  font-size: 14px;
+}
+
+button {
+  cursor: pointer;
+  background: #2b63ff;
+  color: white;
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.avatarGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.avatar {
+  font-size: 22px;
+  background: #143387;
+}
+
+.matches {
+  display: grid;
+  gap: 10px;
+}
+
+.matchCard {
+  border: 1px solid #294ea8;
+  border-radius: 10px;
+  padding: 10px;
+  background: #102a73;
+}
+
+.choiceRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.pick {
+  background: #1a43a8;
+}
+
+.active {
+  border-color: #7af3ff;
+  box-shadow: 0 0 0 1px #7af3ff;
+}
+
+.dashboardEntry {
+  border-top: 1px solid #2748a8;
+  margin-top: 10px;
+  padding-top: 10px;
+}
+
+.message {
+  margin-top: 8px;
+  color: #7af3ff;
+}
