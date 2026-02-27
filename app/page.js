@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { avatars, knockoutMatchIds, knockoutRounds } from '@/lib/matches';
+import { avatars, knockoutMatchIds, knockoutRounds } from 'lib/matches';
 
 const emptyPicks = Object.fromEntries(knockoutMatchIds.map((matchId) => [matchId, '']));
 

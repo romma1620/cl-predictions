@@ -1,5 +1,5 @@
-import { knockoutMatchIds } from '@/lib/matches';
-import { readStore, writeStore } from '@/lib/storage';
+import { knockoutMatchIds } from 'lib/matches';
+import { readStore, writeStore } from 'lib/storage';
 
 function normalizePicks(input) {
   if (Array.isArray(input)) {

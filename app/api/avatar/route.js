@@ -1,4 +1,4 @@
-import { readStore, writeStore } from '@/lib/storage';
+import { readStore, writeStore } from 'lib/storage';
 
 export async function POST(request) {
   const body = await request.json();

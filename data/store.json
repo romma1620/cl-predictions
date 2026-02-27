@@ -1,4 +1,32 @@
 {
-  "users": [],
-  "predictions": []
+  "users": [
+    {
+      "name": "test",
+      "password": "123456",
+      "avatar": "🦁"
+    }
+  ],
+  "predictions": [
+    {
+      "name": "test",
+      "picks": {
+        "r16-1": "Chelsea",
+        "r16-2": "Liverpool",
+        "r16-3": "Real Madrid",
+        "r16-4": "Bayern Munich",
+        "r16-5": "Barcelona",
+        "r16-6": "Tottenham",
+        "r16-7": "Bodø/Glimt",
+        "r16-8": "Arsenal",
+        "qf-1": "Chelsea",
+        "qf-2": "Bayern Munich",
+        "qf-3": "Barcelona",
+        "qf-4": "Arsenal",
+        "sf-1": "Bayern Munich",
+        "sf-2": "Arsenal",
+        "final-1": "Bayern Munich"
+      },
+      "updatedAt": "2026-02-27T14:05:33.506Z"
+    }
+  ]
 }
