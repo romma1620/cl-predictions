@@ -496,6 +496,54 @@ a {
   letter-spacing: 0.04em;
 }
 
+/* ===== Points Info Block ===== */
+.pointsInfo {
+  background: rgba(122, 243, 255, 0.05);
+  border: 1px solid rgba(122, 243, 255, 0.15);
+  border-radius: 12px;
+  padding: 14px 18px;
+  margin-bottom: 20px;
+}
+
+.pointsInfoTitle {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #7b93d4;
+  margin-bottom: 10px;
+}
+
+.pointsInfoList {
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+
+.pointsInfoList li {
+  font-size: 0.85rem;
+  color: #8aa4e0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pointsInfoList li strong {
+  color: #c8d8ff;
+}
+
+.pointsInfoBadge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(100, 140, 255, 0.15);
+  border: 1px solid rgba(100, 140, 255, 0.25);
+  color: #a8b4ff;
+  white-space: nowrap;
+}
+
 /* ===== Actual Result ===== */
 .actualResult {
   margin-left: 6px;

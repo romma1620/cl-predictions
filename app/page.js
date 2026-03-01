@@ -426,6 +426,16 @@ export default function HomePage() {
           <p className="subtitle">Everyone can see each full bracket and champion pick.</p>
         </div>
 
+        <div className="pointsInfo">
+          <p className="pointsInfoTitle">How points are awarded</p>
+          <ul className="pointsInfoList">
+            <li><span className="pointsInfoBadge">R16</span> Correct winner — <strong>1 pt</strong></li>
+            <li><span className="pointsInfoBadge">QF</span> Each correct team in matchup — <strong>2 pts</strong> · Correct winner — <strong>2 pts</strong></li>
+            <li><span className="pointsInfoBadge">SF</span> Each correct team in matchup — <strong>3 pts</strong> · Correct winner — <strong>3 pts</strong></li>
+            <li><span className="pointsInfoBadge">Final</span> Each correct finalist — <strong>5 pts</strong> · Correct winner — <strong>5 pts</strong></li>
+          </ul>
+        </div>
+
         {dashboard.length === 0 && <p>No predictions yet.</p>}
 
         {dashboard.map((entry) => {
