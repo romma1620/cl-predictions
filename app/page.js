@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { firebaseAuth } from 'lib/firebase-client';
 import { avatars, knockoutMatchIds, knockoutRounds, teamLogos } from 'lib/matches';
 
 const emptyPicks = Object.fromEntries(knockoutMatchIds.map((matchId) => [matchId, '']));
@@ -144,26 +146,49 @@ export default function HomePage() {
     setMessage('');
     setLoading(true);
 
-    const response = await fetch('/api/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, password })
-    });
+    try {
+      const safeName = name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '.').replace(/^\.+|\.+$/g, '') || 'user';
+      const email = `${safeName}@cl-predictions.local`;
 
-    const data = await parseJsonSafely(response);
-    setLoading(false);
+      let credential;
+      try {
+        credential = await signInWithEmailAndPassword(firebaseAuth, email, password);
+      } catch (error) {
+        if (String(error?.code || '').includes('auth/user-not-found')) {
+          credential = await createUserWithEmailAndPassword(firebaseAuth, email, password);
+        } else {
+          throw error;
+        }
+      }
 
-    if (!response.ok) {
-      setMessage(data.error || 'Login failed.');
-      return;
+      const idToken = await credential.user.getIdToken();
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`
+        },
+        body: JSON.stringify({ name })
+      });
+      const data = await parseJsonSafely(response);
+
+      if (!response.ok) {
+        setMessage(data.error || 'Login failed.');
+        setLoading(false);
+        return;
+      }
+
+      window.localStorage.setItem('cl-user-name', name);
+      window.localStorage.setItem('cl-user-token', idToken);
+      setToken(idToken);
+      setAvatar(data.avatar || '');
+      setStage(data.avatar ? 'predict' : 'avatar');
+      setMessage(data.avatar ? 'Logged in.' : 'Logged in. Pick your team logo avatar.');
+    } catch (error) {
+      setMessage(error?.message || 'Login failed.');
+    } finally {
+      setLoading(false);
     }
-
-    window.localStorage.setItem('cl-user-name', name);
-    window.localStorage.setItem('cl-user-token', data.idToken);
-    setToken(data.idToken);
-    setAvatar(data.avatar || '');
-    setStage(data.avatar ? 'predict' : 'avatar');
-    setMessage(data.avatar ? 'Logged in.' : 'Logged in. Pick your team logo avatar.');
   }
 
   async function handleSaveAvatar() {
