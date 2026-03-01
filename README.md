@@ -1,25 +1,26 @@
-# Champions League 2026 Predictions (Next.js)
+# Champions League 2026 Predictions (Next.js + Firebase)
 
-Super simple app with:
-- name + password login (plain text, intentionally not secure)
-- avatar selection
-- winner picks for 8 predefined UCL matches
-- shared dashboard with all users' predictions
+App flow:
+- login/register with name + password using Firebase Authentication
+- choose a team-logo avatar
+- fill full knockout picks
+- shared dashboard saved in Cloud Firestore
 
-## Why this storage approach?
-For your "super simple" requirement, this project stores data in a local JSON file at `data/store.json` through Next.js API routes.
+## Firebase setup
 
-Pros:
-- zero external services
-- fastest setup
-- easy to understand/edit
+Create a Firebase project and enable:
+- **Authentication** → Email/Password provider
+- **Firestore Database**
 
-Cons:
-- not production-safe
-- resets if deployed on ephemeral hosting
-- no real auth security
+Set these env vars in `.env.local`:
 
-If you want a cloud option next, Firebase Firestore would be the easiest upgrade.
+```bash
+FIREBASE_WEB_API_KEY=...
+FIREBASE_PROJECT_ID=...
+# optional aliases (also supported):
+NEXT_PUBLIC_FIREBASE_API_KEY=...
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=...
+```
 
 ## Run locally
 

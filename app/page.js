@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { avatars, knockoutMatchIds, knockoutRounds } from 'lib/matches';
+import { avatars, knockoutMatchIds, knockoutRounds, teamLogos } from 'lib/matches';
 
 const emptyPicks = Object.fromEntries(knockoutMatchIds.map((matchId) => [matchId, '']));
 
@@ -68,11 +68,21 @@ async function parseJsonSafely(response) {
   }
 }
 
+function TeamBadge({ team }) {
+  return (
+    <span className="teamBadge">
+      <img alt={`${team} logo`} className="teamLogo" src={teamLogos[team]} />
+      <span>{team}</span>
+    </span>
+  );
+}
+
 export default function HomePage() {
   const [stage, setStage] = useState('login');
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [avatar, setAvatar] = useState('');
+  const [token, setToken] = useState('');
   const [picks, setPicks] = useState({ ...emptyPicks });
   const [dashboard, setDashboard] = useState([]);
   const [message, setMessage] = useState('');
@@ -89,7 +99,10 @@ export default function HomePage() {
   );
 
   async function loadDashboard() {
-    const response = await fetch('/api/predictions', { cache: 'no-store' });
+    const response = await fetch('/api/predictions', {
+      cache: 'no-store',
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined
+    });
     const data = await parseJsonSafely(response);
 
     if (!response.ok) {
@@ -107,9 +120,11 @@ export default function HomePage() {
   useEffect(() => {
     const storedName = window.localStorage.getItem('cl-user-name');
     const storedAvatar = window.localStorage.getItem('cl-user-avatar');
+    const storedToken = window.localStorage.getItem('cl-user-token');
 
-    if (storedName) {
+    if (storedName && storedToken) {
       setName(storedName);
+      setToken(storedToken);
       if (storedAvatar) {
         setAvatar(storedAvatar);
         setStage('predict');
@@ -118,8 +133,11 @@ export default function HomePage() {
       }
     }
 
-    loadDashboard();
   }, []);
+
+  useEffect(() => {
+    loadDashboard();
+  }, [token]);
 
   async function handleLogin(event) {
     event.preventDefault();
@@ -141,8 +159,11 @@ export default function HomePage() {
     }
 
     window.localStorage.setItem('cl-user-name', name);
-    setStage('avatar');
-    setMessage('Logged in. Pick an avatar.');
+    window.localStorage.setItem('cl-user-token', data.idToken);
+    setToken(data.idToken);
+    setAvatar(data.avatar || '');
+    setStage(data.avatar ? 'predict' : 'avatar');
+    setMessage(data.avatar ? 'Logged in.' : 'Logged in. Pick your team logo avatar.');
   }
 
   async function handleSaveAvatar() {
@@ -156,7 +177,10 @@ export default function HomePage() {
 
     const response = await fetch('/api/avatar', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
       body: JSON.stringify({ name, avatar })
     });
 
@@ -201,8 +225,11 @@ export default function HomePage() {
 
     const response = await fetch('/api/predictions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, picks })
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ name, picks, avatar })
     });
 
     const data = await parseJsonSafely(response);
@@ -221,7 +248,7 @@ export default function HomePage() {
     <main className="page">
       <section className="card">
         <h1>Road to Budapest 26 — Prediction Bracket</h1>
-        <p className="subtitle">Login → avatar → predict from Round of 16 to the final winner.</p>
+        <p className="subtitle">Firebase auth + save with team logo avatars.</p>
 
         {stage === 'login' && (
           <form className="form" onSubmit={handleLogin}>
@@ -248,14 +275,14 @@ export default function HomePage() {
           <div className="section">
             <p>Welcome, {name}! Choose your avatar:</p>
             <div className="avatarGrid">
-              {avatars.map((icon) => (
+              {avatars.map((team) => (
                 <button
-                  key={icon}
-                  className={avatar === icon ? 'avatar active' : 'avatar'}
-                  onClick={() => setAvatar(icon)}
+                  key={team}
+                  className={avatar === team ? 'avatar active' : 'avatar'}
+                  onClick={() => setAvatar(team)}
                   type="button"
                 >
-                  {icon}
+                  <TeamBadge team={team} />
                 </button>
               ))}
             </div>
@@ -295,7 +322,7 @@ export default function HomePage() {
                                   onClick={() => updatePick(match.id, team)}
                                   type="button"
                                 >
-                                  {team}
+                                  {options[index] ? <TeamBadge team={team} /> : team}
                                 </button>
                               );
                             })}
