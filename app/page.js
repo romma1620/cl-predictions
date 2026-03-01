@@ -440,6 +440,14 @@ export default function HomePage() {
                   earnedPoints += pts;
                 }
               }
+              if (match.from) {
+                const actualTeams = match.from.map((id) => results[id]).filter(Boolean);
+                if (actualTeams.length === 2) {
+                  maxPoints += pts * 2;
+                  const userTeams = match.from.map((id) => entry.picks[id]).filter(Boolean);
+                  earnedPoints += actualTeams.filter((t) => userTeams.includes(t)).length * pts;
+                }
+              }
             });
           });
 
@@ -470,11 +478,50 @@ export default function HomePage() {
               <div className="dashboardRound" key={`${entry.name}-${round.key}`}>
                 <h4>{round.title}</h4>
                 <ul>
-                  {round.matches.map((match) => (
+                  {round.matches.map((match) => {
+                    const pts = pointsByRound[round.key] || 1;
+                    const isCorrect = results[match.id] && entry.picks[match.id] && results[match.id] === entry.picks[match.id];
+
+                    let teamBonusCount = 0;
+                    if (match.from) {
+                      const actualTeams = match.from.map((id) => results[id]).filter(Boolean);
+                      if (actualTeams.length === 2) {
+                        const userTeams = match.from.map((id) => entry.picks[id]).filter(Boolean);
+                        teamBonusCount = actualTeams.filter((t) => userTeams.includes(t)).length;
+                      }
+                    }
+                    const teamBonus = teamBonusCount * pts;
+
+                    const winnerPts = results[match.id] && entry.picks[match.id]
+                      ? (isCorrect ? pts : 0)
+                      : null;
+                    const totalMatchPts = (winnerPts || 0) + teamBonus;
+                    const hasResult = results[match.id] || teamBonus > 0;
+
+                    const tooltipParts = [];
+                    if (teamBonus > 0) tooltipParts.push(`Teams guessed: ${teamBonusCount}/2 = +${teamBonus}`);
+                    if (teamBonus === 0 && match.from) tooltipParts.push('Teams guessed: 0/2 = +0');
+                    if (winnerPts !== null) tooltipParts.push(`Winner: ${isCorrect ? `correct = +${pts}` : 'wrong = +0'}`);
+                    if (tooltipParts.length > 0) tooltipParts.push(`Total: ${totalMatchPts} pts`);
+                    const tooltip = tooltipParts.join('\n');
+
+                    return (
                     <li key={`${entry.name}-${match.id}`}>
                       {getMatchLabel(match, entry.picks)} → <strong>{entry.picks[match.id] || 'Not picked'}</strong>
+                      {results[match.id] && (
+                        <span className="actualResult">(Result: {results[match.id]})</span>
+                      )}
+                      {hasResult && (
+                        <span
+                          className={totalMatchPts > 0 ? 'pickPoints correct' : 'pickPoints wrong'}
+                          title={tooltip}
+                        >
+                          {totalMatchPts > 0 ? `+${totalMatchPts}` : '0'}
+                        </span>
+                      )}
                     </li>
-                  ))}
+                    );
+                  })}
                 </ul>
               </div>
             ))}
