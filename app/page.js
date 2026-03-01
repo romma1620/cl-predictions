@@ -7,6 +7,8 @@ import { avatars, knockoutMatchIds, knockoutRounds, teamLogos } from 'lib/matche
 
 const emptyPicks = Object.fromEntries(knockoutMatchIds.map((matchId) => [matchId, '']));
 
+const pointsByRound = { r16: 1, qf: 2, sf: 3, final: 5 };
+
 const allMatches = knockoutRounds.flatMap((round) => round.matches);
 const matchesById = Object.fromEntries(allMatches.map((match) => [match.id, match]));
 
@@ -427,10 +429,19 @@ export default function HomePage() {
         {dashboard.length === 0 && <p>No predictions yet.</p>}
 
         {dashboard.map((entry) => {
-          const totalAnswered = knockoutMatchIds.filter((id) => results[id]).length;
-          const correctCount = knockoutMatchIds.filter(
-            (id) => results[id] && entry.picks[id] && results[id] === entry.picks[id]
-          ).length;
+          let earnedPoints = 0;
+          let maxPoints = 0;
+          knockoutRounds.forEach((round) => {
+            const pts = pointsByRound[round.key] || 1;
+            round.matches.forEach((match) => {
+              if (results[match.id]) {
+                maxPoints += pts;
+                if (entry.picks[match.id] && results[match.id] === entry.picks[match.id]) {
+                  earnedPoints += pts;
+                }
+              }
+            });
+          });
 
           return (
           <article className="dashboardEntry" key={entry.name}>
@@ -440,10 +451,10 @@ export default function HomePage() {
               ) : null}
               {entry.name}
             </h3>
-            {totalAnswered > 0 && (
+            {maxPoints > 0 && (
               <div className="scoreDisplay">
-                <span className="scoreValue">{correctCount}/{totalAnswered}</span>
-                <span className="scoreLabel">correct</span>
+                <span className="scoreValue">{earnedPoints}/{maxPoints}</span>
+                <span className="scoreLabel">pts</span>
               </div>
             )}
             <div className="championContainer">
