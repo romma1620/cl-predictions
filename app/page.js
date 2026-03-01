@@ -87,6 +87,7 @@ export default function HomePage() {
   const [token, setToken] = useState('');
   const [picks, setPicks] = useState({ ...emptyPicks });
   const [dashboard, setDashboard] = useState([]);
+  const [results, setResults] = useState({});
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -139,6 +140,10 @@ export default function HomePage() {
 
   useEffect(() => {
     loadDashboard();
+    fetch('/api/results')
+      .then((r) => r.json())
+      .then((data) => { if (data.results) setResults(data.results); })
+      .catch(() => {});
   }, [token]);
 
   async function handleLogin(event) {
@@ -154,7 +159,7 @@ export default function HomePage() {
       try {
         credential = await signInWithEmailAndPassword(firebaseAuth, email, password);
       } catch (error) {
-        if (String(error?.code || '').includes('auth/user-not-found')) {
+        if (['auth/user-not-found', 'auth/invalid-credential', 'auth/invalid-login-credentials'].includes(error?.code)) {
           credential = await createUserWithEmailAndPassword(firebaseAuth, email, password);
         } else {
           throw error;
@@ -272,8 +277,10 @@ export default function HomePage() {
   return (
     <main className="page">
       <section className="card">
-        <h1>Road to Budapest 26 — Prediction Bracket</h1>
-        <p className="subtitle">Firebase auth + save with team logo avatars.</p>
+        <div className="header">
+          <h1>Road to Budapest 26 — Prediction Bracket</h1>
+          <p className="subtitle">Pick every round from R16 to the final winner.</p>
+        </div>
 
         {stage === 'login' && (
           <form className="form" onSubmit={handleLogin}>
@@ -319,9 +326,29 @@ export default function HomePage() {
 
         {stage === 'predict' && (
           <div className="section">
-            <p>
-              Signed in as <strong>{avatar || '🙂'} {name}</strong>
-            </p>
+            <div className="signedInBar">
+              <p className="userBar">
+                Signed in as <strong>{avatar ? <TeamBadge team={avatar} /> : '🙂'} {name}</strong>
+              </p>
+              <button
+                className="logoutBtn"
+                type="button"
+                onClick={() => {
+                  window.localStorage.removeItem('cl-user-name');
+                  window.localStorage.removeItem('cl-user-avatar');
+                  window.localStorage.removeItem('cl-user-token');
+                  setName('');
+                  setPassword('');
+                  setAvatar('');
+                  setToken('');
+                  setPicks({ ...emptyPicks });
+                  setStage('login');
+                  setMessage('');
+                }}
+              >
+                Logout
+              </button>
+            </div>
 
             <div className="bracketRounds">
               {knockoutRounds.map((round) => (
@@ -336,21 +363,25 @@ export default function HomePage() {
                         <div className="matchCard" key={match.id}>
                           <p>{getMatchLabel(match, picks)}</p>
                           <div className="choiceRow">
-                            {[0, 1].map((index) => {
-                              const team = options[index] || 'Waiting...';
-                              const disabled = !options[index];
-                              return (
-                                <button
-                                  key={`${match.id}-${index}`}
-                                  className={selectedWinner === team ? 'pick active' : 'pick'}
-                                  disabled={disabled}
-                                  onClick={() => updatePick(match.id, team)}
-                                  type="button"
-                                >
-                                  {options[index] ? <TeamBadge team={team} /> : team}
-                                </button>
-                              );
-                            })}
+                            <button
+                              key={`${match.id}-0`}
+                              className={selectedWinner === (options[0] || '') ? 'pick active' : 'pick'}
+                              disabled={!options[0]}
+                              onClick={() => updatePick(match.id, options[0])}
+                              type="button"
+                            >
+                              {options[0] ? <TeamBadge team={options[0]} /> : 'Waiting...'}
+                            </button>
+                            <span className="vsLabel">vs</span>
+                            <button
+                              key={`${match.id}-1`}
+                              className={selectedWinner === (options[1] || '') ? 'pick active' : 'pick'}
+                              disabled={!options[1]}
+                              onClick={() => updatePick(match.id, options[1])}
+                              type="button"
+                            >
+                              {options[1] ? <TeamBadge team={options[1]} /> : 'Waiting...'}
+                            </button>
                           </div>
                         </div>
                       );
@@ -359,6 +390,14 @@ export default function HomePage() {
                 </div>
               ))}
             </div>
+
+            {picks['final-1'] && (
+              <div className="championContainer">
+                <p className="championPick">
+                  Your champion: <strong><TeamBadge team={picks['final-1']} /></strong>
+                </p>
+              </div>
+            )}
 
             <button disabled={loading || !canSubmitPredictions} onClick={handleSavePredictions} type="button">
               {loading ? 'Saving...' : 'Save full bracket'}
@@ -369,18 +408,53 @@ export default function HomePage() {
         {message && <p className="message">{message}</p>}
       </section>
 
+      <section className="card prizeCard">
+        <div className="header">
+          <h2>The Prize</h2>
+          <p className="subtitle">What you're playing for.</p>
+        </div>
+        <div className="prizeImageWrapper">
+          <img className="prizeImage" src="/1715.jpeg" alt="The prize" />
+        </div>
+      </section>
+
       <section className="card">
-        <h2>Predictions Dashboard</h2>
-        <p className="subtitle">Everyone can see each full bracket and champion pick.</p>
+        <div className="header">
+          <h2>Predictions Dashboard</h2>
+          <p className="subtitle">Everyone can see each full bracket and champion pick.</p>
+        </div>
 
         {dashboard.length === 0 && <p>No predictions yet.</p>}
 
-        {dashboard.map((entry) => (
+        {dashboard.map((entry) => {
+          const totalAnswered = knockoutMatchIds.filter((id) => results[id]).length;
+          const correctCount = knockoutMatchIds.filter(
+            (id) => results[id] && entry.picks[id] && results[id] === entry.picks[id]
+          ).length;
+
+          return (
           <article className="dashboardEntry" key={entry.name}>
             <h3>
-              {entry.avatar} {entry.name}
+              {entry.avatar && teamLogos[entry.avatar] ? (
+                <img className="dashboardAvatar" src={teamLogos[entry.avatar]} alt={entry.avatar} />
+              ) : null}
+              {entry.name}
             </h3>
-            <p className="championPick">🏆 Final winner: <strong>{entry.picks['final-1'] || 'Not set'}</strong></p>
+            {totalAnswered > 0 && (
+              <div className="scoreDisplay">
+                <span className="scoreValue">{correctCount}/{totalAnswered}</span>
+                <span className="scoreLabel">correct</span>
+              </div>
+            )}
+            <div className="championContainer">
+              <p className="championPick">
+                {entry.picks['final-1'] ? (
+                  <>Final winner: <strong><TeamBadge team={entry.picks['final-1']} /></strong></>
+                ) : (
+                  <>Final winner: <strong>Not set</strong></>
+                )}
+              </p>
+            </div>
             {knockoutRounds.map((round) => (
               <div className="dashboardRound" key={`${entry.name}-${round.key}`}>
                 <h4>{round.title}</h4>
@@ -394,7 +468,8 @@ export default function HomePage() {
               </div>
             ))}
           </article>
-        ))}
+          );
+        })}
       </section>
     </main>
   );

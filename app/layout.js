@@ -5,6 +5,11 @@ export const metadata = {
   description: 'Simple predictions app for Champions League 2026 bracket.'
 };
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1
+};
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
